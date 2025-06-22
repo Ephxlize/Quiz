@@ -1,12 +1,21 @@
-// public/script.js
+// ==============
+//  CLIENT-SIDE SCRIPT
+// ==============
+
 const socket = io();
 
-// Alle UI-Container
+// === GLOBALE VARIABLEN ===
+let isHost = false; // Wichtige Variable, um zu wissen, ob dieser Client der Host ist
+let localGameState = {}; // Lokale Kopie des Spielzustands
+
+// === UI ELEMENTE ===
+// Container
 const hostLoginContainer = document.getElementById('host-login-container');
 const playerJoinContainer = document.getElementById('player-join-container');
 const lobbyContainer = document.getElementById('lobby-container');
 const quizContainer = document.getElementById('quiz-container');
-// ... weitere Elemente
+const resultContainer = document.getElementById('result-container');
+const allContainers = [hostLoginContainer, playerJoinContainer, lobbyContainer, quizContainer, resultContainer];
 
 // Buttons und Inputs
 const hostLoginBtn = document.getElementById('host-login-btn');
@@ -15,61 +24,104 @@ const playerJoinBtn = document.getElementById('player-join-btn');
 const playerNameInput = document.getElementById('player-name-input');
 const startGameBtn = document.getElementById('start-game-btn');
 
-let isHost = false; // Lokale Variable, um zu wissen, ob dieser Client der Host ist
+// Quiz-spezifische Elemente
+const questionElement = document.getElementById('question');
+const answerButtonsElement = document.getElementById('answer-buttons');
+const playerListElement = document.getElementById('player-list');
+const lobbyInfoText = document.getElementById('lobby-info-text');
 
-// === Event Emitter (Aktionen des Benutzers) ===
+// === EVENT EMITTER (Aktionen vom Client an den Server) ===
+
 hostLoginBtn.addEventListener('click', () => {
     socket.emit('hostLogin', hostPasswordInput.value);
 });
 
 playerJoinBtn.addEventListener('click', () => {
-    socket.emit('playerJoin', playerNameInput.value || 'Anonymer Spieler');
+    const playerName = playerNameInput.value.trim();
+    if (playerName) {
+        socket.emit('playerJoin', playerName);
+    } else {
+        alert("Bitte gib einen Namen ein.");
+    }
 });
 
 startGameBtn.addEventListener('click', () => {
     socket.emit('startGame');
 });
 
-// === Event Listener (Nachrichten vom Server) ===
 
-// Zentraler Listener, der die gesamte UI steuert
+// === EVENT LISTENER (Nachrichten vom Server an den Client) ===
+
+// Wenn der Host-Login erfolgreich war
+socket.on('hostSuccess', () => {
+    console.log("Host-Login erfolgreich bestätigt vom Server.");
+    isHost = true;
+});
+
+// Zentraler Listener, der die gesamte UI basierend auf dem Spielzustand steuert
 socket.on('gameStateUpdate', (gameState) => {
-    console.log("Neuer Spielzustand:", gameState);
-    // Verstecke standardmäßig alles
-    [hostLoginContainer, playerJoinContainer, lobbyContainer, quizContainer].forEach(c => c.classList.add('hide'));
-    
+    console.log("Neuer Spielzustand erhalten:", gameState.status);
+    localGameState = gameState; // Speichere den Zustand lokal
+
+    // Verstecke standardmäßig alle Haupt-Container
+    allContainers.forEach(c => c.classList.add('hide'));
+
     // UI basierend auf dem Spielstatus anzeigen
     switch (gameState.status) {
         case 'WAITING_FOR_HOST':
             hostLoginContainer.classList.remove('hide');
             break;
+
         case 'LOBBY':
             lobbyContainer.classList.remove('hide');
             updatePlayerList(gameState.players);
+
             if (isHost) {
                 startGameBtn.classList.remove('hide');
+                playerJoinContainer.classList.add('hide');
+                lobbyInfoText.textContent = "Du bist der Host. Klicke 'Spiel starten', sobald alle bereit sind.";
             } else {
-                 // Zeige dem Spieler an, dass er in der Lobby ist und wartet
-                 // Prüfe, ob der Spieler schon beigetreten ist
                 const selfInGame = gameState.players.some(p => p.id === socket.id);
-                if (!selfInGame) {
+                if (selfInGame) {
+                    lobbyInfoText.textContent = "Du bist im Spiel! Warte, bis der Host startet...";
+                    playerJoinContainer.classList.add('hide');
+                } else {
                     playerJoinContainer.classList.remove('hide');
                 }
             }
             break;
+
         case 'IN_GAME':
             quizContainer.classList.remove('hide');
             break;
-        // ... weitere Zustände
+            
+        case 'FINISHED':
+            resultContainer.classList.remove('hide');
+            // Hier Ergebnislogik einfügen
+            break;
     }
 });
 
-// Wenn der Host-Login erfolgreich war
-socket.on('hostSuccess', () => {
-    isHost = true;
-    alert("Du bist jetzt der Host!");
-    // Verstecke das Host-Login-Formular für diesen Client
-    hostLoginContainer.classList.add('hide');
+// Wenn eine neue Frage vom Server kommt
+socket.on('newQuestion', (questionData) => {
+    console.log("Neue Frage erhalten:", questionData.question);
+    questionElement.innerText = questionData.question;
+    
+    // Alte Antwort-Buttons entfernen
+    answerButtonsElement.innerHTML = '';
+
+    // Neue Antwort-Buttons erstellen
+    questionData.answers.forEach(answer => {
+        const button = document.createElement('button');
+        button.innerText = answer.text;
+        button.classList.add('btn');
+        // Speichere, ob die Antwort korrekt ist (wichtig für die Auswertung)
+        if (answer.correct) {
+            button.dataset.correct = "true";
+        }
+        // button.addEventListener('click', selectAnswer); // Diese Funktion müssen wir noch implementieren
+        answerButtonsElement.appendChild(button);
+    });
 });
 
 // Bei Fehlern
@@ -77,13 +129,19 @@ socket.on('error', (message) => {
     alert(`Fehler: ${message}`);
 });
 
-// Hilfsfunktion zur Anzeige der Spielerliste
+
+// === HILFSFUNKTIONEN ===
+
+// Funktion zur Anzeige der Spielerliste
 function updatePlayerList(players) {
-    const playerList = document.getElementById('player-list');
-    playerList.innerHTML = ''; // Liste leeren
+    playerListElement.innerHTML = ''; // Liste leeren
     players.forEach(player => {
         const li = document.createElement('li');
-        li.textContent = `${player.name} - ${player.score} Punkte`;
-        playerList.appendChild(li);
+        let playerLabel = `${player.name} - ${player.score} Punkte`;
+        if (player.id === localGameState.hostId) {
+            playerLabel += " (Host)";
+        }
+        li.textContent = playerLabel;
+        playerListElement.appendChild(li);
     });
 }

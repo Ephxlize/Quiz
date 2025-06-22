@@ -1,38 +1,17 @@
 [
     {
         "question": "Was ist die Hauptstadt von Deutschland?",
-        "answers": [
-            { "text": "München", "correct": false },
-            { "text": "Berlin", "correct": true },
-            { "text": "Hamburg", "correct": false },
-            { "text": "Köln", "correct": false }
-        ]
+        "options": ["München", "Berlin", "Hamburg", "Köln"],
+        "correctIndex": 1
     },
     {
         "question": "Welcher Planet ist als der 'Rote Planet' bekannt?",
-        "answers": [
-            { "text": "Venus", "correct": false },
-            { "text": "Jupiter", "correct": false },
-            { "text": "Mars", "correct": true },
-            { "text": "Saturn", "correct": false }
-        ]
+        "options": ["Venus", "Jupiter", "Mars", "Saturn"],
+        "correctIndex": 2
     },
     {
         "question": "Wie viele Beine hat eine Spinne?",
-        "answers": [
-            { "text": "6", "correct": false },
-            { "text": "8", "correct": true },
-            { "text": "10", "correct": false },
-            { "text": "4", "correct": false }
-        ]
-    },
-    {
-        "question": "Woraus besteht HTML?",
-        "answers": [
-            { "text": "Programmiersprache", "correct": false },
-            { "text": "Skriptsprache", "correct": false },
-            { "text": "Datenbank", "correct": false },
-            { "text": "Auszeichnungssprache", "correct": true }
-        ]
+        "options": ["6", "8", "10", "4"],
+        "correctIndex": 1
     }
 ]

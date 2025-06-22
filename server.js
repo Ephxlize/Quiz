@@ -87,7 +87,8 @@ io.on('connection', (socket) => {
             gameState.players.push({ id: socket.id, name: 'Host', score: 0 });
 
             socket.emit('hostSuccess'); // Sende Bestätigung nur an den neuen Host
-            io.emit('gameStateUpdate', gameState); // Sende den neuen Zustand an ALLE
+            io.emit('gameStateUpdate', gameState); // Sende den neuen Zustand an ALLE (inkl. Host)
+
             console.log(`Host hat sich erfolgreich angemeldet: ${socket.id}`);
         } else {
             socket.emit('error', 'Falsches Host-Passwort.');
@@ -108,15 +109,23 @@ io.on('connection', (socket) => {
 
     // Der Host startet das Spiel
     socket.on('startGame', () => {
-        // Sicherheitsprüfung: Nur der Host darf das Spiel starten.
-        if (socket.id !== gameState.hostId) return;
+        if (socket.id !== gameState.hostId) return; // Sicherheitsprüfung
 
         gameState.status = 'IN_GAME';
         gameState.currentQuestionIndex = 0;
         
-        // Sende den neuen Zustand und die erste Frage an alle
         io.emit('gameStateUpdate', gameState);
-        io.emit('newQuestion', gameState.questions[gameState.currentQuestionIndex]);
+
+        // Frage für den Client umwandeln und senden
+        const currentQuestionData = gameState.questions[gameState.currentQuestionIndex];
+        const questionForClient = {
+            question: currentQuestionData.question,
+            answers: currentQuestionData.options.map((option, index) => ({
+                text: option,
+                correct: index === currentQuestionData.correctIndex
+            }))
+        };
+        io.emit('newQuestion', questionForClient);
     });
 
     // HIER WÜRDE DIE LOGIK FÜR 'submitAnswer' UND 'nextQuestion' HINKOMMEN
@@ -125,10 +134,13 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('Ein Benutzer hat die Verbindung getrennt:', socket.id);
 
-        // Prüfe, ob es der Host war, der gegangen ist
-        if (socket.id === gameState.hostId) {
+        const isHost = socket.id === gameState.hostId;
+        
+        // Entferne den Spieler/Host aus der Spielerliste
+        gameState.players = gameState.players.filter(p => p.id !== socket.id);
+
+        if (isHost) {
             console.log("Der Host hat das Spiel verlassen. Das Spiel wird zurückgesetzt.");
-            
             // Spiel komplett zurücksetzen und Fragen neu mischen
             gameState = {
                 status: 'WAITING_FOR_HOST',
@@ -137,12 +149,9 @@ io.on('connection', (socket) => {
                 currentQuestionIndex: -1,
                 questions: shuffleArray(allQuestions)
             };
-            io.emit('gameStateUpdate', gameState); // Alle verbleibenden Spieler zurück zum Startbildschirm schicken
-        } else {
-            // Wenn es ein normaler Spieler war, entferne ihn einfach aus der Liste
-            gameState.players = gameState.players.filter(p => p.id !== socket.id);
-            io.emit('gameStateUpdate', gameState); // Sende die aktualisierte Spielerliste an alle
         }
+        // Sende immer ein Update, egal wer gegangen ist
+        io.emit('gameStateUpdate', gameState);
     });
 });
 
@@ -150,5 +159,5 @@ io.on('connection', (socket) => {
 //  SERVER START
 // ==============
 server.listen(PORT, () => {
-    console.log(`Server läuft und lauscht auf http://localhost:8888`);
+    console.log(`Server läuft und lauscht auf http://localhost:${PORT}`);
 });
