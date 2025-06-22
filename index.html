@@ -1,40 +1,38 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mein Quizspiel</title>
-    <link rel="stylesheet" href="style.css">
-</head>
 <body>
-    <!-- Startbildschirm -->
-    <div class="start-container" id="start-container">
-        <h1>Willkommen beim Quiz!</h1>
-        <p>Bist du bereit, dein Wissen zu testen?</p>
-        <button id="start-btn" class="btn">Quiz starten</button>
+    <!-- Container für den Host-Login (initial für alle sichtbar) -->
+    <div id="host-login-container">
+        <h2>Host-Login</h2>
+        <input type="password" id="host-password-input" placeholder="Host-Passwort">
+        <button id="host-login-btn">Als Host einloggen</button>
     </div>
 
-    <!-- Quiz-Container -->
-    <div class="quiz-container" id="quiz-container" class="hide">
-        <div id="question-container">
-            <h2 id="question">Hier steht die Frage</h2>
-            <div id="answer-buttons" class="btn-grid">
-                <!-- Antwort-Buttons werden hier von JavaScript eingefügt -->
-            </div>
-        </div>
-        <div class="controls">
-            <button id="next-btn" class="btn hide">Nächste Frage</button>
-        </div>
+    <!-- Container für Spieler, die beitreten wollen -->
+    <div id="player-join-container" class="hide">
+        <h2>Spiel beitreten</h2>
+        <input type="text" id="player-name-input" placeholder="Dein Name">
+        <button id="player-join-btn">Beitreten</button>
     </div>
 
-    <!-- Ergebnis-Container -->
-    <div class="result-container" id="result-container" class="hide">
-        <h1>Quiz beendet!</h1>
-        <p>Du hast <span id="score">0</span> von <span id="total-questions">0</span> Fragen richtig beantwortet.</p>
-        <button id="restart-btn" class="btn">Nochmal spielen</button>
+    <!-- Lobby-Ansicht (zeigt Spieler, wartet auf Start) -->
+    <div id="lobby-container" class="hide">
+        <h1>Warteraum</h1>
+        <p>Warte, bis der Host das Spiel startet...</p>
+        <h2>Spieler:</h2>
+        <ul id="player-list"></ul>
+        <!-- Dieser Button ist nur für den Host sichtbar -->
+        <button id="start-game-btn" class="btn hide">Spiel starten</button>
+    </div>
+    
+    <!-- Der eigentliche Quiz-Container (wie vorher) -->
+    <div id="quiz-container" class="hide">
+        <!-- ... -->
     </div>
 
-    <!-- Verknüpfung zur JavaScript-Datei -->
+    <!-- Ergebnis-Container (wie vorher) -->
+    <div id="result-container" class="hide">
+        <!-- ... -->
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
-</html>

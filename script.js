@@ -1,139 +1,89 @@
-// Fragen für das Quiz als Array von Objekten
-const questions = [
-    {
-        question: "Was ist die Hauptstadt von Deutschland?",
-        answers: [
-            { text: "München", correct: false },
-            { text: "Berlin", correct: true },
-            { text: "Hamburg", correct: false },
-            { text: "Köln", correct: false }
-        ]
-    },
-    {
-        question: "Welcher Planet ist als der 'Rote Planet' bekannt?",
-        answers: [
-            { text: "Venus", correct: false },
-            { text: "Jupiter", correct: false },
-            { text: "Mars", correct: true },
-            { text: "Saturn", correct: false }
-        ]
-    },
-    {
-        question: "Wie viele Beine hat eine Spinne?",
-        answers: [
-            { text: "6", correct: false },
-            { text: "8", correct: true },
-            { text: "10", correct: false },
-            { text: "4", correct: false }
-        ]
-    },
-    {
-        question: "Woraus besteht HTML?",
-        answers: [
-            { text: "Programmiersprache", correct: false },
-            { text: "Skriptsprache", correct: false },
-            { text: "Datenbank", correct: false },
-            { text: "Auszeichnungssprache", correct: true }
-        ]
-    }
-];
+// public/script.js
+const socket = io();
 
-// HTML-Elemente holen
-const startContainer = document.getElementById('start-container');
+// Alle UI-Container
+const hostLoginContainer = document.getElementById('host-login-container');
+const playerJoinContainer = document.getElementById('player-join-container');
+const lobbyContainer = document.getElementById('lobby-container');
 const quizContainer = document.getElementById('quiz-container');
-const resultContainer = document.getElementById('result-container');
-const startButton = document.getElementById('start-btn');
-const questionElement = document.getElementById('question');
-const answerButtonsElement = document.getElementById('answer-buttons');
-const nextButton = document.getElementById('next-btn');
-const restartButton = document.getElementById('restart-btn');
-const scoreElement = document.getElementById('score');
-const totalQuestionsElement = document.getElementById('total-questions');
+// ... weitere Elemente
 
-let currentQuestionIndex, score;
+// Buttons und Inputs
+const hostLoginBtn = document.getElementById('host-login-btn');
+const hostPasswordInput = document.getElementById('host-password-input');
+const playerJoinBtn = document.getElementById('player-join-btn');
+const playerNameInput = document.getElementById('player-name-input');
+const startGameBtn = document.getElementById('start-game-btn');
 
-// Event Listener für die Buttons
-startButton.addEventListener('click', startQuiz);
-nextButton.addEventListener('click', setNextQuestion);
-restartButton.addEventListener('click', startQuiz);
+let isHost = false; // Lokale Variable, um zu wissen, ob dieser Client der Host ist
 
-// Funktion, um das Quiz zu starten
-function startQuiz() {
-    startContainer.classList.add('hide');
-    resultContainer.classList.add('hide');
-    quizContainer.classList.remove('hide');
+// === Event Emitter (Aktionen des Benutzers) ===
+hostLoginBtn.addEventListener('click', () => {
+    socket.emit('hostLogin', hostPasswordInput.value);
+});
+
+playerJoinBtn.addEventListener('click', () => {
+    socket.emit('playerJoin', playerNameInput.value || 'Anonymer Spieler');
+});
+
+startGameBtn.addEventListener('click', () => {
+    socket.emit('startGame');
+});
+
+// === Event Listener (Nachrichten vom Server) ===
+
+// Zentraler Listener, der die gesamte UI steuert
+socket.on('gameStateUpdate', (gameState) => {
+    console.log("Neuer Spielzustand:", gameState);
+    // Verstecke standardmäßig alles
+    [hostLoginContainer, playerJoinContainer, lobbyContainer, quizContainer].forEach(c => c.classList.add('hide'));
     
-    currentQuestionIndex = 0;
-    score = 0;
-    
-    setNextQuestion();
-}
-
-// Funktion, um die nächste Frage zu laden
-function setNextQuestion() {
-    resetState();
-    if (currentQuestionIndex < questions.length) {
-        showQuestion(questions[currentQuestionIndex]);
-    } else {
-        showResult();
+    // UI basierend auf dem Spielstatus anzeigen
+    switch (gameState.status) {
+        case 'WAITING_FOR_HOST':
+            hostLoginContainer.classList.remove('hide');
+            break;
+        case 'LOBBY':
+            lobbyContainer.classList.remove('hide');
+            updatePlayerList(gameState.players);
+            if (isHost) {
+                startGameBtn.classList.remove('hide');
+            } else {
+                 // Zeige dem Spieler an, dass er in der Lobby ist und wartet
+                 // Prüfe, ob der Spieler schon beigetreten ist
+                const selfInGame = gameState.players.some(p => p.id === socket.id);
+                if (!selfInGame) {
+                    playerJoinContainer.classList.remove('hide');
+                }
+            }
+            break;
+        case 'IN_GAME':
+            quizContainer.classList.remove('hide');
+            break;
+        // ... weitere Zustände
     }
-}
+});
 
-// Funktion, um eine Frage und die Antworten anzuzeigen
-function showQuestion(question) {
-    questionElement.innerText = question.question;
-    question.answers.forEach(answer => {
-        const button = document.createElement('button');
-        button.innerText = answer.text;
-        button.classList.add('btn');
-        if (answer.correct) {
-            button.dataset.correct = answer.correct;
-        }
-        button.addEventListener('click', selectAnswer);
-        answerButtonsElement.appendChild(button);
+// Wenn der Host-Login erfolgreich war
+socket.on('hostSuccess', () => {
+    isHost = true;
+    alert("Du bist jetzt der Host!");
+    // Verstecke das Host-Login-Formular für diesen Client
+    hostLoginContainer.classList.add('hide');
+});
+
+// Bei Fehlern
+socket.on('error', (message) => {
+    alert(`Fehler: ${message}`);
+});
+
+// Hilfsfunktion zur Anzeige der Spielerliste
+function updatePlayerList(players) {
+    const playerList = document.getElementById('player-list');
+    playerList.innerHTML = ''; // Liste leeren
+    players.forEach(player => {
+        const li = document.createElement('li');
+        li.textContent = `${player.name} - ${player.score} Punkte`;
+        playerList.appendChild(li);
     });
-}
-
-// Funktion, um den Zustand zurückzusetzen (Buttons entfernen, etc.)
-function resetState() {
-    nextButton.classList.add('hide');
-    while (answerButtonsElement.firstChild) {
-        answerButtonsElement.removeChild(answerButtonsElement.firstChild);
-    }
-}
-
-// Funktion, die bei der Auswahl einer Antwort ausgeführt wird
-function selectAnswer(e) {
-    const selectedButton = e.target;
-    const correct = selectedButton.dataset.correct === "true";
-    
-    if (correct) {
-        score++;
-    }
-
-    // Visuelles Feedback für alle Buttons
-    Array.from(answerButtonsElement.children).forEach(button => {
-        setStatusClass(button, button.dataset.correct === "true");
-        button.disabled = true; // Buttons deaktivieren nach der Auswahl
-    });
-
-    currentQuestionIndex++;
-    nextButton.classList.remove('hide');
-}
-
-// Funktion, um CSS-Klassen für richtig/falsch zu setzen
-function setStatusClass(element, correct) {
-    if (correct) {
-        element.classList.add('correct');
-    } else {
-        element.classList.add('wrong');
-    }
-}
-
-// Funktion, um das Endergebnis anzuzeigen
-function showResult() {
-    quizContainer.classList.add('hide');
-    resultContainer.classList.remove('hide');
-    scoreElement.innerText = score;
-    totalQuestionsElement.innerText = questions.length;
 }
