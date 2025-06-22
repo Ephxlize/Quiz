@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3000;
 // ==============
 // Das geheime Passwort, um sich als Host anzumelden.
 // ÄNDERE DIES AUF EIN EIGENES PASSWORT!
-const HOST_PASSWORD = "meinSuperGeheimesPasswort123";
+const HOST_PASSWORD = "Gomme";
 
 // Lade die Fragen aus der externen JSON-Datei
 let allQuestions = [];
@@ -159,5 +159,5 @@ io.on('connection', (socket) => {
 //  SERVER START
 // ==============
 server.listen(PORT, () => {
-    console.log(`Server läuft und lauscht auf http://localhost:${PORT}`);
+    console.log(`Server läuft und lauscht auf http://localhost:3000`);
 });
