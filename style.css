@@ -1,0 +1,60 @@
+/* Grundlegende Stile für die Seite */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+/* Container für Quiz, Start und Ergebnis */
+.start-container, .quiz-container, .result-container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+}
+
+/* Stil für die Buttons */
+.btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 5px;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+/* Layout für die Antwort-Buttons */
+.btn-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Stile für richtige und falsche Antworten */
+.btn.correct {
+    background-color: #28a745; /* Grün */
+}
+
+.btn.wrong {
+    background-color: #dc3545; /* Rot */
+}
+
+/* Hilfsklasse, um Elemente auszublenden */
+.hide {
+    display: none;
+}
